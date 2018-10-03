@@ -52,11 +52,33 @@ sets=sets(ind)
 % write out all elements
 cellfun(@(x) num2str(x),sets,'uni',0)
 %% The new rewriting with arbitrary k and based on partitions function from internet.
+clear all
+
 p = 10;
 k = 3;
 sets = partitions(p,1:k);
-if k == p;  sets(end,:) = [];   end     % remove no splitting
-sets = mod(sets,2);                     % remove symmetries
-sets(:,1) = [];                         % remove ones
-[~,ind] = unique(sets*2.^(1:size(sets,2))');
-sets=sets(ind,:)
+sets = cumsum(sets','reverse')';                 % transpose representation gives you simply all piles
+for i = 1:size(sets,1)                          % encode things in sparse code
+    setsT(i,:) = histcounts(sets(i,:),1:p+1);   % beats me why it is p+1, but has to be
+end
+
+setsT(:,end) = [];
+setsT(1,:) = [];                                % remove no splitting. i.e first element.
+setsT(:,1) = [];                                % remove ones. After this everything goes from 2:p-1
+% setsT(sum(setsT,2)==0,:) = [];                % remove zero rows. NO. You can't do that! zeros means it's losable!
+
+setsT = mod(setsT,2);                           % remove symmetries
+[~,ind] = unique(setsT*2.^(1:size(setsT,2))');  % remove not unique.
+setsT=setsT(ind,:);
+
+pairs = [2 5; 3 8; 4 7; 6 9];                   % reduce fundamental pairs
+setsT(:,pairs(:,1)-1) = setsT(:,pairs(:,2)-1) + setsT(:,pairs(:,1)-1);
+setsT(:,pairs(:,2)-1) = 0;
+
+setsT = mod(setsT,2);                           % remove symmetries
+[~,ind] = unique(setsT*2.^(1:size(setsT,2))');  % remove not unique.
+setsT=setsT(ind,:);
+
+for i = 1:size(setsT,2)
+    finals{i} = find(setsT(i,:))+1;
+end
